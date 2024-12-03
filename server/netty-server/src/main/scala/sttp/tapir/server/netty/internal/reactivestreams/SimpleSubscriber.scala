@@ -5,7 +5,7 @@ import io.netty.handler.codec.http.HttpContent
 import org.reactivestreams.{Publisher, Subscription}
 import sttp.capabilities.StreamMaxLengthExceededException
 
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.{LinkedBlockingQueue, TimeoutException}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 
@@ -26,15 +26,19 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onNext(content: HttpContent): Unit = {
+//    println("dupa next")
     val byteBuf = content.content()
     // If expected content length is known, we haven't received any data yet, and we receive exactly this amount of bytes,
     // we assume there's only one chunk and we can immediately return it without going through the buffer list.
     if (buffers.isEmpty && contentLength.contains(byteBuf.readableBytes())) {
       val finalArray = ByteBufUtil.getBytes(byteBuf)
       byteBuf.release()
+      println(s"resultPromise 1 ${resultPromise.isCompleted}")
       if (!resultPromise.trySuccess(finalArray)) {
-        // Result is set, which is unexpected. The previous chunk was supposed the be the only one.
+//        to robie complete !!!!!!!!!!!!!!
+        // Result is set, which is unexpected. The previous chunk was supposed to be the only one.
         // A malformed request perhaps?
+        println("resultPromise")
         subscription.cancel()
       } else {
         subscription.request(1)
@@ -47,14 +51,28 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onError(t: Throwable): Unit = {
+    println("onError called")
     buffers.foreach { buf =>
       val _ = buf.release()
     }
     buffers = Vector.empty
+    if (resultPromise.isCompleted)
+      println("resultPromise.isCompleted")
+//    resultPromise.tryFailure(t)
     resultPromise.failure(t)
   }
 
   override def onComplete(): Unit = {
+    if (contentLength.exists(_ > totalLength)) {
+      println(s"or corrupted contentLength $contentLength, totalLength $totalLength") // nie wchodzi w totalLength wiec zawsze zero
+      onError(new TimeoutException("Request timed out"))
+      return
+    }
+
+    println("dupa complete")
+//    if (resultPromise.isCompleted)
+//      println("resultPromise.isCompleted 2")
+
     if (buffers.nonEmpty) {
       val mergedArray = new Array[Byte](totalLength)
       var currentIndex = 0

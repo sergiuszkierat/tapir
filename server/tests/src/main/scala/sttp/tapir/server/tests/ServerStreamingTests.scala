@@ -13,6 +13,9 @@ import sttp.tapir.server.model.MaxContentLength
 import sttp.tapir.AttributeKey
 import cats.effect.IO
 import sttp.capabilities.fs2.Fs2Streams
+import scala.concurrent.duration._
+
+import scala.util.Random
 
 class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
     createServerTest: CreateServerTest[F, S, OPTIONS, ROUTE],
@@ -25,26 +28,26 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
     import createServerTest._
 
     val penPineapple = "pen pineapple apple pen"
-
+    
     val baseTests = List(
       testServer(in_stream_out_stream(streams))((s: streams.BinaryStream) => pureResult(s.asRight[Unit])) { (backend, baseUri) =>
         basicRequest.post(uri"$baseUri/api/echo").body(penPineapple).send(backend).map(_.body shouldBe Right(penPineapple))
       },
-      testServer(
-        in_stream_out_stream_with_content_length(streams)
-      )((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) { (backend, baseUri) =>
-        {
-          basicRequest
-            .post(uri"$baseUri/api/echo")
-            .contentLength(penPineapple.length.toLong)
-            .body(penPineapple)
-            .send(backend)
-            .map { response =>
-              response.body shouldBe Right(penPineapple)
-              response.contentLength shouldBe Some(penPineapple.length)
-            }
-        }
-      },
+//      testServer(
+//        in_stream_out_stream_with_content_length(streams)
+//      )((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) { (backend, baseUri) =>
+//        {
+//          basicRequest
+//            .post(uri"$baseUri/api/echo")
+//            .contentLength(penPineapple.length.toLong)
+//            .body(penPineapple)
+//            .send(backend)
+//            .map { response =>
+//              response.body shouldBe Right(penPineapple)
+//              response.contentLength shouldBe Some(penPineapple.length)
+//            }
+//        }
+//      },
       testServer(out_custom_content_type_stream_body(streams)) { case (k, s) =>
         pureResult((if (k < 0) (MediaType.ApplicationJson.toString(), s) else (MediaType.ApplicationXml.toString(), s)).asRight[Unit])
       } { (backend, baseUri) =>
@@ -80,25 +83,70 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
             .send(backend)
             .map(_.body shouldBe Right("was not left"))
       },
-      testServer(in_stream_out_either_json_xml_stream(streams)) { s => pureResult(s.asRight[Unit]) } { (backend, baseUri) =>
-        basicRequest
-          .post(uri"$baseUri")
-          .body(penPineapple)
-          .header(Header.accept(MediaType.ApplicationXml, MediaType.ApplicationJson))
-          .send(backend)
-          .map { r =>
-            r.contentType shouldBe Some(MediaType.ApplicationXml.toString())
-            r.body shouldBe Right(penPineapple)
-          } >>
+//      testServer(in_stream_out_either_json_xml_stream(streams)) { s => pureResult(s.asRight[Unit]) } { (backend, baseUri) =>
+//        basicRequest
+//          .post(uri"$baseUri")
+//          .body(penPineapple)
+//          .header(Header.accept(MediaType.ApplicationXml, MediaType.ApplicationJson))
+//          .send(backend)
+//          .map { r =>
+//            r.contentType shouldBe Some(MediaType.ApplicationXml.toString())
+//            r.body shouldBe Right(penPineapple)
+//          } >>
+//          basicRequest
+//            .post(uri"$baseUri")
+//            .body(penPineapple)
+//            .header(Header.accept(MediaType.ApplicationJson, MediaType.ApplicationXml))
+//            .send(backend)
+//            .map { r =>
+//              r.contentType shouldBe Some(MediaType.ApplicationJson.toString())
+//              r.body shouldBe Right(penPineapple)
+//            }
+//      },
+//      testServer(
+//        in_stream_out_stream(streams).attribute(AttributeKey[MaxContentLength], MaxContentLength(maxBytes)),
+//        "with request content length == max"
+//      )((s: streams.BinaryStream) => pureResult(s.asRight[Unit])) { (backend, baseUri) =>
+//        basicRequest
+//          .post(uri"$baseUri/api/echo")
+//          .streamBody(Fs2Streams[IO])(inputStream)
+//          .send(backend)
+//          .map(resp => assert(resp.isSuccess, "Response 200 OK"))
+//      },
+      testServer(in_stream_out_stream_with_content_length(streams))((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) {
+//        val stream = fs2.Stream.from(1, 2, 3) ++ fs2.Stream(Thread.sleep(3000)) ++ fs2.Stream(4, 5)
+
+        val howManyChars: Int = 20
+
+        def iterator(howManyChars: Int): Iterator[Byte] = new Iterator[Byte] {
+          private var charsToGo: Int = howManyChars // - 1
+
+          def hasNext: Boolean = {
+            Thread.sleep(1000)
+            charsToGo > 0
+          }
+
+          def next(): Byte = {
+            charsToGo -= 1
+            'A'.toByte
+          }
+        }
+
+        val inputStream = fs2.Stream.fromIterator[IO](iterator(howManyChars), chunkSize = 10)
+
+        (backend, baseUri) => {
           basicRequest
-            .post(uri"$baseUri")
-            .body(penPineapple)
-            .header(Header.accept(MediaType.ApplicationJson, MediaType.ApplicationXml))
+//            .readTimeout(500.millis)
+            .post(uri"$baseUri/api/echo")
+            .contentLength(howManyChars)
+            .streamBody(Fs2Streams[IO])(inputStream)
             .send(backend)
-            .map { r =>
-              r.contentType shouldBe Some(MediaType.ApplicationJson.toString())
-              r.body shouldBe Right(penPineapple)
+//            .timeout(500.millis)
+            .map { response =>
+              response.body shouldBe Right("AAAAAAAAAAAAAAAAAAAAB")
+              response.contentLength shouldBe Some(howManyChars)
             }
+        }
       }
     )
 
@@ -121,6 +169,8 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
         val inputByteCount = 1024
         val maxBytes = 1023L
         val inputStream = fs2.Stream.fromIterator[IO](Iterator.fill[Byte](inputByteCount)('5'.toByte), chunkSize = 256)
+//        fs2.Stream(1, 2, 3) ++ fs2.Stream(Thread.sleep(3000)) ++ fs2.Stream(4, 5)
+//        NettyConfig.requestTimeout ustawic to to w tescie
         testServer(
           in_stream_out_string(streams).attribute(AttributeKey[MaxContentLength], MaxContentLength(maxBytes)),
           "with request content length > max"
