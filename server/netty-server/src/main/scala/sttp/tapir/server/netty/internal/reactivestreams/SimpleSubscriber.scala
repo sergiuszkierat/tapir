@@ -5,7 +5,7 @@ import io.netty.handler.codec.http.HttpContent
 import org.reactivestreams.{Publisher, Subscription}
 import sttp.capabilities.StreamMaxLengthExceededException
 
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.{LinkedBlockingQueue, TimeoutException}
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 
@@ -26,6 +26,7 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onNext(content: HttpContent): Unit = {
+//    println("dupa next")
     val byteBuf = content.content()
     // If expected content length is known, we haven't received any data yet, and we receive exactly this amount of bytes,
     // we assume there's only one chunk and we can immediately return it without going through the buffer list.
@@ -47,6 +48,7 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onError(t: Throwable): Unit = {
+    println("dupa error")
     buffers.foreach { buf =>
       val _ = buf.release()
     }
@@ -55,6 +57,11 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onComplete(): Unit = {
+    if (contentLength.exists(_ > totalLength))
+      println(s"or corrupted contentLength $contentLength, totalLength $totalLength")
+
+//    println("dupa complete")
+//    onError(new TimeoutException("Request timed out"))
     if (buffers.nonEmpty) {
       val mergedArray = new Array[Byte](totalLength)
       var currentIndex = 0

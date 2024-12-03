@@ -81,6 +81,7 @@ private[netty] trait NettyRequestBody[F[_], S <: Streams[S]] extends RequestBody
       case req: StreamedHttpRequest =>
         val contentLength = Option(req.headers().get(HeaderNames.ContentLength)).map(_.toLong)
         publisherToBytes(req, contentLength, maxBytes)
+//        publisherToBytes(req, None, maxBytes)
       case other =>
         monad.error(new UnsupportedOperationException(s"Unexpected Netty request of type ${other.getClass.getName}"))
     }

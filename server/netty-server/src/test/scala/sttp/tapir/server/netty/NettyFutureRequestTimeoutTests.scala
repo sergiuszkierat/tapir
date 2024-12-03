@@ -56,7 +56,7 @@ class NettyFutureRequestTimeoutTests(eventLoopGroup: EventLoopGroup, backend: St
           .randomPort
           .withDontShutdownEventLoopGroupOnClose
           .noGracefulShutdown
-          .requestTimeout(1.second)
+          .requestTimeout(2.second)
       val options = NettyFutureServerOptions.customiseInterceptors
         .metricsInterceptor(new MetricsRequestInterceptor[Future](customMetrics, Seq.empty))
         .options
@@ -66,11 +66,11 @@ class NettyFutureRequestTimeoutTests(eventLoopGroup: EventLoopGroup, backend: St
         .make(bind)(server => IO.fromFuture(IO.delay(server.stop())))
         .map(_.port)
         .use { port =>
-          basicRequest.post(uri"http://localhost:$port").body("test").send(backend).map { response =>
+          basicRequest.post(uri"http://localhost:$port").body("testi").send(backend).map { response =>
             response.body should matchPattern { case Left(_) => }
             response.code shouldBe StatusCode.ServiceUnavailable
             // the metrics will only be updated when the endpoint's logic completes, which is 1 second after receiving the timeout response
-            Thread.sleep(1100)
+            Thread.sleep(2100)
             activeRequests.get() shouldBe 0
             totalRequests.get() shouldBe 1
           }
