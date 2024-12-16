@@ -174,7 +174,7 @@ object TapirCodecEnumeratumTest {
     case object Value2 extends TestIntEnumEntry(2)
     case object Value3 extends TestIntEnumEntry(3)
 
-    override def values: scala.collection.immutable.IndexedSeq[TestIntEnumEntry] = findValues
+    override def values: scala.collection.immutable.IndexedSeq[TestIntEnumEntry] = IndexedSeq.empty
   }
 
   @description("test long enum entry")
@@ -185,7 +185,7 @@ object TapirCodecEnumeratumTest {
     case object Value2 extends TestLongEnumEntry(2L)
     case object Value3 extends TestLongEnumEntry(3L)
 
-    override def values: scala.collection.immutable.IndexedSeq[TestLongEnumEntry] = findValues
+    override def values: scala.collection.immutable.IndexedSeq[TestLongEnumEntry] = IndexedSeq.empty
   }
 
   @description("test short enum entry")
@@ -196,7 +196,7 @@ object TapirCodecEnumeratumTest {
     case object Value2 extends TestShortEnumEntry(2)
     case object Value3 extends TestShortEnumEntry(3)
 
-    override def values: scala.collection.immutable.IndexedSeq[TestShortEnumEntry] = findValues
+    override def values: scala.collection.immutable.IndexedSeq[TestShortEnumEntry] = IndexedSeq.empty
   }
 
   @description("test string enum entry")
@@ -207,7 +207,7 @@ object TapirCodecEnumeratumTest {
     case object Value2 extends TestStringEnumEntry("value-2")
     case object Value3 extends TestStringEnumEntry("value-3")
 
-    override def values: scala.collection.immutable.IndexedSeq[TestStringEnumEntry] = findValues
+    override def values: scala.collection.immutable.IndexedSeq[TestStringEnumEntry] = IndexedSeq.empty
   }
 
   @description("test byte enum entry")
@@ -218,7 +218,7 @@ object TapirCodecEnumeratumTest {
     case object Value2 extends TestByteEnumEntry(2)
     case object Value3 extends TestByteEnumEntry(3)
 
-    override def values: scala.collection.immutable.IndexedSeq[TestByteEnumEntry] = findValues
+    override def values: scala.collection.immutable.IndexedSeq[TestByteEnumEntry] = IndexedSeq.empty
   }
 
   @description("test char enum entry")
@@ -229,7 +229,7 @@ object TapirCodecEnumeratumTest {
     case object Value2 extends TestCharEnumEntry('2')
     case object Value3 extends TestCharEnumEntry('3')
 
-    override def values: scala.collection.immutable.IndexedSeq[TestCharEnumEntry] = findValues
+    override def values: scala.collection.immutable.IndexedSeq[TestCharEnumEntry] = IndexedSeq.empty
   }
 
   @default(TestEnumEntryWithSomeEncodedDefault.Value2, encoded = Some(TestEnumEntryWithSomeEncodedDefault.Value2))

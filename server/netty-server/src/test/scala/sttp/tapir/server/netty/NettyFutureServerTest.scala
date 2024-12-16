@@ -32,4 +32,6 @@ class NettyFutureServerTest extends TestSuite with EitherValues {
         }
         .map { case (tests, _) => tests }
     }
+
+  override def testNameFilter: Option[String] = super.testNameFilter
 }

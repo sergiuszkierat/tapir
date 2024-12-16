@@ -33,9 +33,12 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
     if (buffers.isEmpty && contentLength.contains(byteBuf.readableBytes())) {
       val finalArray = ByteBufUtil.getBytes(byteBuf)
       byteBuf.release()
+      println(s"resultPromise 1 ${resultPromise.isCompleted}")
       if (!resultPromise.trySuccess(finalArray)) {
-        // Result is set, which is unexpected. The previous chunk was supposed the be the only one.
+//        to robie complete !!!!!!!!!!!!!!
+        // Result is set, which is unexpected. The previous chunk was supposed to be the only one.
         // A malformed request perhaps?
+        println("resultPromise")
         subscription.cancel()
       } else {
         subscription.request(1)
@@ -48,20 +51,28 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onError(t: Throwable): Unit = {
-    println("dupa error")
+    println("onError called")
     buffers.foreach { buf =>
       val _ = buf.release()
     }
     buffers = Vector.empty
+    if (resultPromise.isCompleted)
+      println("resultPromise.isCompleted")
+//    resultPromise.tryFailure(t)
     resultPromise.failure(t)
   }
 
   override def onComplete(): Unit = {
-    if (contentLength.exists(_ > totalLength))
-      println(s"or corrupted contentLength $contentLength, totalLength $totalLength")
+    if (contentLength.exists(_ > totalLength)) {
+      println(s"or corrupted contentLength $contentLength, totalLength $totalLength") // nie wchodzi w totalLength wiec zawsze zero
+      onError(new TimeoutException("Request timed out"))
+      return
+    }
 
-//    println("dupa complete")
-//    onError(new TimeoutException("Request timed out"))
+    println("dupa complete")
+//    if (resultPromise.isCompleted)
+//      println("resultPromise.isCompleted 2")
+
     if (buffers.nonEmpty) {
       val mergedArray = new Array[Byte](totalLength)
       var currentIndex = 0

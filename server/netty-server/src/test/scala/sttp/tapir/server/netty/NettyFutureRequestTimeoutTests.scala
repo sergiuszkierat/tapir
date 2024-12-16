@@ -19,6 +19,8 @@ import org.scalatest.matchers.should.Matchers._
 import cats.effect.unsafe.implicits.global
 import sttp.model.StatusCode
 
+import java.io.ByteArrayInputStream
+
 class NettyFutureRequestTimeoutTests(eventLoopGroup: EventLoopGroup, backend: SttpBackend[IO, Fs2Streams[IO] with WebSockets])(implicit
     ec: ExecutionContext
 ) {
@@ -66,14 +68,21 @@ class NettyFutureRequestTimeoutTests(eventLoopGroup: EventLoopGroup, backend: St
         .make(bind)(server => IO.fromFuture(IO.delay(server.stop())))
         .map(_.port)
         .use { port =>
-          basicRequest.post(uri"http://localhost:$port").body("testi").send(backend).map { response =>
-            response.body should matchPattern { case Left(_) => }
-            response.code shouldBe StatusCode.ServiceUnavailable
-            // the metrics will only be updated when the endpoint's logic completes, which is 1 second after receiving the timeout response
-            Thread.sleep(2100)
-            activeRequests.get() shouldBe 0
-            totalRequests.get() shouldBe 1
-          }
+          val reqBody = "testt"
+          basicRequest
+            .post(uri"http://localhost:$port")
+            .headers(Map("Content-Length" -> s"${reqBody.length}"))
+//            .body("testt")
+            .body(new ByteArrayInputStream(reqBody.getBytes))
+            .send(backend)
+            .map { response =>
+              response.body should matchPattern { case Left(_) => }
+              response.code shouldBe StatusCode.ServiceUnavailable
+              // the metrics will only be updated when the endpoint's logic completes, which is 1 second after receiving the timeout response
+              Thread.sleep(2100)
+              activeRequests.get() shouldBe 0
+              totalRequests.get() shouldBe 1
+            }
         }
         .unsafeToFuture()
     }
