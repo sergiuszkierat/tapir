@@ -35,8 +35,9 @@ class NettyFs2StreamingCancellationTest[OPTIONS, ROUTE](createServerTest: Create
         .awakeEvery[IO](100.milliseconds)
         .map(_ => 42.toByte)
         .onFinalizeCase {
-          case ExitCase.Canceled => buffer.offer(None)
-          case _                 => IO.unit
+          case ExitCase.Canceled =>
+            buffer.offer(None)
+          case _ => IO.unit
         }
 
     testServer(
@@ -49,7 +50,7 @@ class NettyFs2StreamingCancellationTest[OPTIONS, ROUTE](createServerTest: Create
       // 1. The endpoint emits a byte continuously every 100 millis
       // 2. The client connects and reads bytes, putting them in a buffer
       // 3. The client cancels and disconnects after 1 second (using .timeout on the stream draining operation)
-      // 4. The endpoint logic reacts to cancelation and signals the end of the buffer (by putting a None in it)
+      // 4. The endpoint logic reacts to cancellation and signals the end of the buffer (by putting a None in it)
       // 5. The client tries to read all bytes from the buffer, which would fail with a timeout if the None element from point 4. wasn't triggered correctly
       basicRequest
         .get(uri"$baseUri/streamCanceled")
