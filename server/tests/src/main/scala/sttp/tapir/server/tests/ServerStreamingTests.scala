@@ -121,6 +121,8 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
         val inputByteCount = 1024
         val maxBytes = 1023L
         val inputStream = fs2.Stream.fromIterator[IO](Iterator.fill[Byte](inputByteCount)('5'.toByte), chunkSize = 256)
+        fs2.Stream(1, 2, 3) ++ fs2.Stream(Thread.sleep(3000)) ++ fs2.Stream(4, 5)
+//        NettyConfig.requestTimeout ustawic to to w tescie
         testServer(
           in_stream_out_string(streams).attribute(AttributeKey[MaxContentLength], MaxContentLength(maxBytes)),
           "with request content length > max"
