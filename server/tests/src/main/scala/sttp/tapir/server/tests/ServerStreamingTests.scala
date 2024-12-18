@@ -33,21 +33,21 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
       testServer(in_stream_out_stream(streams))((s: streams.BinaryStream) => pureResult(s.asRight[Unit])) { (backend, baseUri) =>
         basicRequest.post(uri"$baseUri/api/echo").body(penPineapple).send(backend).map(_.body shouldBe Right(penPineapple))
       },
-      testServer(
-        in_stream_out_stream_with_content_length(streams)
-      )((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) { (backend, baseUri) =>
-        {
-          basicRequest
-            .post(uri"$baseUri/api/echo")
-            .contentLength(penPineapple.length.toLong)
-            .body(penPineapple)
-            .send(backend)
-            .map { response =>
-              response.body shouldBe Right(penPineapple)
-              response.contentLength shouldBe Some(penPineapple.length)
-            }
-        }
-      },
+//      testServer(
+//        in_stream_out_stream_with_content_length(streams)
+//      )((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) { (backend, baseUri) =>
+//        {
+//          basicRequest
+//            .post(uri"$baseUri/api/echo")
+//            .contentLength(penPineapple.length.toLong)
+//            .body(penPineapple)
+//            .send(backend)
+//            .map { response =>
+//              response.body shouldBe Right(penPineapple)
+//              response.contentLength shouldBe Some(penPineapple.length)
+//            }
+//        }
+//      },
       testServer(out_custom_content_type_stream_body(streams)) { case (k, s) =>
         pureResult((if (k < 0) (MediaType.ApplicationJson.toString(), s) else (MediaType.ApplicationXml.toString(), s)).asRight[Unit])
       } { (backend, baseUri) =>
@@ -82,7 +82,7 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
             .body(penPineapple)
             .send(backend)
             .map(_.body shouldBe Right("was not left"))
-      }
+      },
 //      testServer(in_stream_out_either_json_xml_stream(streams)) { s => pureResult(s.asRight[Unit]) } { (backend, baseUri) =>
 //        basicRequest
 //          .post(uri"$baseUri")
@@ -113,42 +113,42 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
 //          .send(backend)
 //          .map(resp => assert(resp.isSuccess, "Response 200 OK"))
 //      },
-//      testServer(in_stream_out_stream_with_content_length(streams))((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) {
-////        val stream = fs2.Stream.from(1, 2, 3) ++ fs2.Stream(Thread.sleep(3000)) ++ fs2.Stream(4, 5)
-//
-//        val howManyChars: Int = 20
-////        val bytes: List[Byte] = List.fill(howManyChars)(Random.nextPrintableChar()).map(_.toByte)
-//
-//        def iterator(howManyChars: Int): Iterator[Byte] = new Iterator[Byte] {
-//          private var charsToGo: Int = howManyChars
-//
-//          def hasNext: Boolean = {
+      testServer(in_stream_out_stream_with_content_length(streams))((in: (Long, streams.BinaryStream)) => pureResult(in.asRight[Unit])) {
+//        val stream = fs2.Stream.from(1, 2, 3) ++ fs2.Stream(Thread.sleep(3000)) ++ fs2.Stream(4, 5)
+
+        val howManyChars: Int = 20
+//        val bytes: List[Byte] = List.fill(howManyChars)(Random.nextPrintableChar()).map(_.toByte)
+
+        def iterator(howManyChars: Int): Iterator[Byte] = new Iterator[Byte] {
+          private var charsToGo: Int = howManyChars
+
+          def hasNext: Boolean = {
 //            Thread.sleep(1000)
-//            charsToGo > 0
-//          }
-//
-//          def next(): Byte = {
-//            val nxt = Random.nextPrintableChar()
-//            charsToGo -= 1
-//            nxt.toByte
-//          }
-//        }
-//
-//        val inputStream = fs2.Stream.fromIterator[IO](iterator(howManyChars), chunkSize = 10)
-//
-//        (backend, baseUri) => {
-//          basicRequest
-//            .post(uri"$baseUri/api/aecho2")
-//            .contentLength(howManyChars)
-//            .streamBody(Fs2Streams[IO])(inputStream)
-//            .send(backend)
-//            .timeout(500.millis)
-//            .map { response =>
-//              response.body shouldBe Right(penPineapple)
-//              response.contentLength shouldBe Some(howManyChars)
-//            }
-//        }
-//      }
+            charsToGo > 0
+          }
+
+          def next(): Byte = {
+            val nxt = Random.nextPrintableChar()
+            charsToGo -= 1
+            nxt.toByte
+          }
+        }
+
+        val inputStream = fs2.Stream.fromIterator[IO](iterator(howManyChars), chunkSize = 10)
+
+        (backend, baseUri) => {
+          basicRequest
+            .post(uri"$baseUri/api/echo")
+            .contentLength(howManyChars)
+            .streamBody(Fs2Streams[IO])(inputStream)
+            .send(backend)
+            .timeout(500.millis)
+            .map { response =>
+              response.body shouldBe Right(penPineapple)
+              response.contentLength shouldBe Some(howManyChars)
+            }
+        }
+      }
     )
 
     val maxContentLengthTests = List(
