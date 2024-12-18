@@ -1,14 +1,14 @@
 package sttp.tapir.server.tests
 
-import cats.syntax.all.*
-import org.scalatest.matchers.should.Matchers.*
+import cats.syntax.all._
+import org.scalatest.matchers.should.Matchers._
 import sttp.capabilities.Streams
-import sttp.client3.*
+import sttp.client3._
 import sttp.model.{Header, MediaType, StatusCode}
 import sttp.monad.MonadError
-import sttp.monad.syntax.*
+import sttp.monad.syntax._
 import sttp.tapir.tests.Test
-import sttp.tapir.tests.Streaming.*
+import sttp.tapir.tests.Streaming._
 import sttp.tapir.server.model.MaxContentLength
 import sttp.tapir.AttributeKey
 import cats.effect.IO
