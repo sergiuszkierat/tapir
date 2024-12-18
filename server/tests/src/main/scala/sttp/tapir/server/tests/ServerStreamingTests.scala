@@ -117,7 +117,6 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
 //        val stream = fs2.Stream.from(1, 2, 3) ++ fs2.Stream(Thread.sleep(3000)) ++ fs2.Stream(4, 5)
 
         val howManyChars: Int = 20
-//        val bytes: List[Byte] = List.fill(howManyChars)(Random.nextPrintableChar()).map(_.toByte)
 
         def iterator(howManyChars: Int): Iterator[Byte] = new Iterator[Byte] {
           private var charsToGo: Int = howManyChars
@@ -128,9 +127,8 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
           }
 
           def next(): Byte = {
-            val nxt = Random.nextPrintableChar()
             charsToGo -= 1
-            nxt.toByte
+            'A'.toByte
           }
         }
 

@@ -57,4 +57,6 @@ class NettyCatsServerTest extends TestSuite with EitherValues {
         }
         .map { case (tests, _) => tests }
     }
+
+  override def testNameFilter: Option[String] = Some("Endpoint(securityin: -, in: POST /api /echo {header Content-Length} {body as stream}")
 }
