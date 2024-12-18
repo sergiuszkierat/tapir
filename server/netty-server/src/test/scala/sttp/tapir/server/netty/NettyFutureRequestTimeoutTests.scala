@@ -86,5 +86,38 @@ class NettyFutureRequestTimeoutTests(eventLoopGroup: EventLoopGroup, backend: St
         }
         .unsafeToFuture()
     }
+//    Test("part data send") {
+////      testServer()
+//
+//
+//      val e = endpoint.post
+//        .in(stringBody)
+//        .out(stringBody)
+//        .serverLogicSuccess[Future] { body =>
+//          Thread.sleep(2000); Future.successful(body)
+//        }
+//
+//      Resource
+//        .make(bind)(server => IO.fromFuture(IO.delay(server.stop())))
+//        .map(_.port)
+//        .use { port =>
+//          val reqBody = "testt"
+//          basicRequest
+//            .post(uri"http://localhost:$port")
+//            .headers(Map("Content-Length" -> s"${reqBody.length}"))
+////            .body("testt")
+//            .body(new ByteArrayInputStream(reqBody.getBytes))
+//            .send(backend)
+//            .map { response =>
+//              response.body should matchPattern { case Left(_) => }
+//              response.code shouldBe StatusCode.ServiceUnavailable
+//              // the metrics will only be updated when the endpoint's logic completes, which is 1 second after receiving the timeout response
+//              Thread.sleep(2100)
+//              activeRequests.get() shouldBe 0
+//              totalRequests.get() shouldBe 1
+//            }
+//        }
+//        .unsafeToFuture()
+//    }
   )
 }
