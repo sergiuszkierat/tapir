@@ -5,12 +5,12 @@ import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
 import fs2.Stream
 import io.netty.channel.EventLoopGroup
-import org.scalatest.matchers.should.Matchers._
+import org.scalatest.matchers.should.Matchers.*
 import sttp.capabilities.WebSockets
 import sttp.capabilities.fs2.Fs2Streams
-import sttp.client3._
+import sttp.client3.*
 import sttp.model.{HeaderNames, StatusCode}
-import sttp.tapir._
+import sttp.tapir.*
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.metrics.MetricsRequestInterceptor
 import sttp.tapir.server.metrics.{EndpointMetric, Metric}
@@ -23,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.DurationInt
 import sttp.tapir.server.ServerEndpoint
+
+import java.net.http.HttpTimeoutException
 
 class NettyCatsRequestTimeoutTest(
     dispatcher: Dispatcher[IO],
@@ -42,14 +44,7 @@ class NettyCatsRequestTimeoutTest(
           .out(streamTextBody(Fs2Streams[IO])(CodecFormat.TextPlain()))
 
       val endpointModel2: PublicEndpoint[(Long, fs2.Stream[IO, Byte]), Unit, (Long, fs2.Stream[IO, Byte]), Fs2Streams[IO]] =
-        Endpoint[Unit, Unit, Unit, Unit, Any](
-          emptyInput,
-          emptyInput,
-          emptyOutput,
-          emptyOutput,
-          EndpointInfo(None, None, None, Vector.empty, deprecated = false, AttributeMap.Empty)
-        ).post
-//        endpoint.post
+        endpoint.post
           .in(header[Long](HeaderNames.ContentLength))
           .in(streamTextBody(Fs2Streams[IO])(CodecFormat.TextPlain()))
           .out(header[Long](HeaderNames.ContentLength))
@@ -67,8 +62,6 @@ class NettyCatsRequestTimeoutTest(
         .serverLogicSuccess[IO] { case (length, stream) =>
           IO((length, stream))
         }
-
-      val options = NettyCatsServerOptions.default[IO](dispatcher)
 
       val config =
         NettyConfig.default
@@ -102,18 +95,24 @@ class NettyCatsRequestTimeoutTest(
         .make(bind)(_.stop())
         .map(_.port)
         .use { port =>
-          basicRequest
+            basicRequest
             .post(uri"http://localhost:$port")
             .contentLength(howManyChars)
             .streamBody(Fs2Streams[IO])(inputStream)
             .send(backend)
-            //            .timeout(500.millis)
             .map { response =>
-              response.body shouldBe Right("AAAAAAAAAAAAAAAAAAAA")
               println("zrobione")
-              response.contentLength shouldBe Some(howManyChars)
+              fail("I've got a bad feeling about this.")
+//              response.body shouldBe Right("AAAAAAAAAAAAAAAAAAAA")
+//              response.contentLength shouldBe Some(howManyChars)
             }
         }
+//        .attempt
+//        .map {
+//          case Left(ex: sttp.client3.SttpClientException.TimeoutException) => ex.getMessage shouldBe "request timed out"
+//          case Left(ex) => fail(s"Unexpected exception: $ex")
+//          case Right(_) => fail("Expected an exception but got success")
+//        }
         .unsafeToFuture()
     }
   )
