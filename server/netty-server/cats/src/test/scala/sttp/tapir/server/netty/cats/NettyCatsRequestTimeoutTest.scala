@@ -5,12 +5,12 @@ import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
 import fs2.Stream
 import io.netty.channel.EventLoopGroup
-import org.scalatest.matchers.should.Matchers.*
+import org.scalatest.matchers.should.Matchers._
 import sttp.capabilities.WebSockets
 import sttp.capabilities.fs2.Fs2Streams
-import sttp.client3.*
+import sttp.client3._
 import sttp.model.{HeaderNames, StatusCode}
-import sttp.tapir.*
+import sttp.tapir._
 import sttp.tapir.server.ServerEndpoint
 import sttp.tapir.server.interceptor.metrics.MetricsRequestInterceptor
 import sttp.tapir.server.metrics.{EndpointMetric, Metric}
