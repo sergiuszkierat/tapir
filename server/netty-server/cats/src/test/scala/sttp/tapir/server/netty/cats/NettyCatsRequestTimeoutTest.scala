@@ -30,14 +30,7 @@ class NettyCatsRequestTimeoutTest(
   def tests(): List[Test] = List(
     Test("part data send") {
 
-      val streamingEndpoint2: Endpoint[Unit, (Long, Stream[IO, Byte]), Unit, (Long, Stream[IO, Byte]), Fs2Streams[IO]] =
-        endpoint.post
-          .in(header[Long](HeaderNames.ContentLength))
-          .in(streamTextBody(Fs2Streams[IO])(CodecFormat.TextPlain()))
-          .out(header[Long](HeaderNames.ContentLength))
-          .out(streamTextBody(Fs2Streams[IO])(CodecFormat.TextPlain()))
-
-      val endpointModel2: PublicEndpoint[(Long, fs2.Stream[IO, Byte]), Unit, (Long, fs2.Stream[IO, Byte]), Fs2Streams[IO]] =
+      val streamingEndpoint2: PublicEndpoint[(Long, fs2.Stream[IO, Byte]), Unit, (Long, fs2.Stream[IO, Byte]), Fs2Streams[IO]] =
         endpoint.post
           .in(header[Long](HeaderNames.ContentLength))
           .in(streamTextBody(Fs2Streams[IO])(CodecFormat.TextPlain()))
@@ -52,7 +45,7 @@ class NettyCatsRequestTimeoutTest(
         (Long, fs2.Stream[IO, Byte]),
         Fs2Streams[IO],
         IO
-      ] = endpointModel2
+      ] = streamingEndpoint2
         .serverLogicSuccess[IO] { case (length, stream) =>
           IO((length, stream))
         }
@@ -63,31 +56,34 @@ class NettyCatsRequestTimeoutTest(
           .randomPort
           .withDontShutdownEventLoopGroupOnClose
           .noGracefulShutdown
-          .requestTimeout(500.millis) // ???
+          .requestTimeout(2.second) // ???
 //          .idleTimeout(300.millis) //???
 
       val bind = NettyCatsServer(dispatcher, config).addEndpoint(e).start()
 
-      val howManyChars: Int = 20
+      val howManyChunks: Int = 2
+      val chunkSize = 100
 
-      def iterator(howManyChars: Int): Iterator[Byte] = new Iterator[Byte] {
-        private var charsToGo: Int = howManyChars
+      def iterator(howManyChunks: Int): Iterator[Byte] = new Iterator[Iterator[Byte]] {
+        private var chunksToGo: Int = howManyChunks
 
         def hasNext: Boolean = {
-          println(s"hasNext $charsToGo")
+          println(s"hasNext $chunksToGo")
           Thread.sleep(3000)
-          println(s"hasNext $charsToGo after sleep")
-          charsToGo > 0
+          println(s"hasNext $chunksToGo after sleep")
+          chunksToGo > 0
         }
 
-        def next(): Byte = {
-          println(s"next $charsToGo")
-          charsToGo -= 1
-          'A'.toByte
+        def next(): Iterator[Byte] = {
+          println(s"next $chunksToGo")
+//          Thread.sleep(3000)
+          chunksToGo -= 1
+          println(s"next $chunksToGo after sleep")
+          List.fill('A')(chunkSize).map(_.toByte).iterator
         }
-      }
+      }.flatten
 
-      val inputStream = fs2.Stream.fromIterator[IO](iterator(howManyChars), chunkSize = 10)
+      val inputStream = fs2.Stream.fromIterator[IO](iterator(howManyChunks), chunkSize = chunkSize)
 
       Resource
         .make(bind)(_.stop())
@@ -95,7 +91,7 @@ class NettyCatsRequestTimeoutTest(
         .use { port =>
           basicRequest
             .post(uri"http://localhost:$port")
-            .contentLength(howManyChars)
+            .contentLength(howManyChunks * chunkSize)
             .streamBody(Fs2Streams[IO])(inputStream)
             .send(backend)
 //            .timeout(1.second)
@@ -113,7 +109,10 @@ class NettyCatsRequestTimeoutTest(
             println("kupa")
             println(ex.getCause)
             ex.getCause.getMessage shouldBe "request timed out"
-          case Left(ex) => fail(s"Unexpected exception: $ex")
+          case Left(ex) =>
+            println("kupa 2")
+            println(ex.getCause)
+            fail(s"Unexpected exception: $ex")
           case Right(_) => fail("Expected an exception but got success")
         }
         .unsafeToFuture()
