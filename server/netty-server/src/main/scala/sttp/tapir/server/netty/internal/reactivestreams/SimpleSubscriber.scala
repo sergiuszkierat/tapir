@@ -63,11 +63,11 @@ private[netty] class SimpleSubscriber(contentLength: Option[Long]) extends Promi
   }
 
   override def onComplete(): Unit = {
-//    if (contentLength.exists(_ > totalLength)) {
-//      println(s"or corrupted contentLength $contentLength, totalLength $totalLength") // nie wchodzi w totalLength wiec zawsze zero
-//      onError(new TimeoutException("Request timed out"))
-//      return
-//    }
+    if (contentLength.exists(_ > totalLength)) {
+      println(s"or corrupted contentLength $contentLength, totalLength $totalLength") // nie wchodzi w totalLength wiec zawsze zero
+      onError(new TimeoutException("Request timed out"))
+      return
+    }
 
     println("dupa complete")
 //    if (resultPromise.isCompleted)

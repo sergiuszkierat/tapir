@@ -28,7 +28,7 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
     import createServerTest._
 
     val penPineapple = "pen pineapple apple pen"
-
+    
     val baseTests = List(
       testServer(in_stream_out_stream(streams))((s: streams.BinaryStream) => pureResult(s.asRight[Unit])) { (backend, baseUri) =>
         basicRequest.post(uri"$baseUri/api/echo").body(penPineapple).send(backend).map(_.body shouldBe Right(penPineapple))
@@ -119,10 +119,10 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
         val howManyChars: Int = 20
 
         def iterator(howManyChars: Int): Iterator[Byte] = new Iterator[Byte] {
-          private var charsToGo: Int = howManyChars
+          private var charsToGo: Int = howManyChars // - 1
 
           def hasNext: Boolean = {
-//            Thread.sleep(1000)
+            Thread.sleep(1000)
             charsToGo > 0
           }
 
@@ -136,13 +136,14 @@ class ServerStreamingTests[F[_], S, OPTIONS, ROUTE](
 
         (backend, baseUri) => {
           basicRequest
+//            .readTimeout(500.millis)
             .post(uri"$baseUri/api/echo")
             .contentLength(howManyChars)
             .streamBody(Fs2Streams[IO])(inputStream)
             .send(backend)
-            .timeout(500.millis)
+//            .timeout(500.millis)
             .map { response =>
-              response.body shouldBe Right(penPineapple)
+              response.body shouldBe Right("AAAAAAAAAAAAAAAAAAAAB")
               response.contentLength shouldBe Some(howManyChars)
             }
         }
