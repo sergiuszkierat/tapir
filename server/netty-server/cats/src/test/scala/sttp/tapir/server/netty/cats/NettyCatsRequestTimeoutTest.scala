@@ -1,7 +1,6 @@
 package sttp.tapir.server.netty.cats
 
 import cats.effect.{IO, Resource}
-import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
 import fs2.Stream
