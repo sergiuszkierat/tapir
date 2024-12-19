@@ -64,6 +64,7 @@ class NettyCatsRequestTimeoutTest(
           .withDontShutdownEventLoopGroupOnClose
           .noGracefulShutdown
           .requestTimeout(500.millis) // ???
+//          .idleTimeout(300.millis) //???
 
       val bind = NettyCatsServer(dispatcher, config).addEndpoint(e).start()
 
@@ -73,11 +74,14 @@ class NettyCatsRequestTimeoutTest(
         private var charsToGo: Int = howManyChars
 
         def hasNext: Boolean = {
+          println(s"hasNext $charsToGo")
           Thread.sleep(3000)
+          println(s"hasNext $charsToGo after sleep")
           charsToGo > 0
         }
 
         def next(): Byte = {
+          println(s"next $charsToGo")
           charsToGo -= 1
           'A'.toByte
         }
@@ -94,8 +98,10 @@ class NettyCatsRequestTimeoutTest(
             .contentLength(howManyChars)
             .streamBody(Fs2Streams[IO])(inputStream)
             .send(backend)
+//            .timeout(1.second)
             .map { response =>
               println("zrobione")
+              println(response)
               fail("I've got a bad feeling about this.")
 //              response.body shouldBe Right("AAAAAAAAAAAAAAAAAAAA")
 //              response.contentLength shouldBe Some(howManyChars)
