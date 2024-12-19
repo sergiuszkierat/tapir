@@ -106,14 +106,13 @@ class NettyCatsRequestTimeoutTest(
         .attempt
         .map {
           case Left(ex: sttp.client3.SttpClientException.TimeoutException) =>
-            println("kupa")
-            println(ex.getCause)
             ex.getCause.getMessage shouldBe "request timed out"
+          case Left(ex: sttp.client3.SttpClientException.ReadException) if ex.getCause.isInstanceOf[java.io.IOException] =>
+            fail(s"Unexpected IOException: $ex")
           case Left(ex) =>
-            println("kupa 2")
-            println(ex.getCause)
             fail(s"Unexpected exception: $ex")
-          case Right(_) => fail("Expected an exception but got success")
+          case Right(_) =>
+            fail("Expected an exception but got success")
         }
         .unsafeToFuture()
     }
