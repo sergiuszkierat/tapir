@@ -9,18 +9,12 @@ import org.scalatest.matchers.should.Matchers._
 import sttp.capabilities.WebSockets
 import sttp.capabilities.fs2.Fs2Streams
 import sttp.client3._
-import sttp.model.{HeaderNames, StatusCode}
+import sttp.model.{HeaderNames}
 import sttp.tapir._
-import sttp.tapir.server.ServerEndpoint
-import sttp.tapir.server.interceptor.metrics.MetricsRequestInterceptor
-import sttp.tapir.server.metrics.{EndpointMetric, Metric}
 import sttp.tapir.server.netty.NettyConfig
 import sttp.tapir.tests.Test
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.StandardCharsets
-import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext}
 import scala.concurrent.duration.DurationInt
 import sttp.tapir.server.ServerEndpoint
 
@@ -95,7 +89,7 @@ class NettyCatsRequestTimeoutTest(
         .make(bind)(_.stop())
         .map(_.port)
         .use { port =>
-            basicRequest
+          basicRequest
             .post(uri"http://localhost:$port")
             .contentLength(howManyChars)
             .streamBody(Fs2Streams[IO])(inputStream)
@@ -107,12 +101,15 @@ class NettyCatsRequestTimeoutTest(
 //              response.contentLength shouldBe Some(howManyChars)
             }
         }
-//        .attempt
-//        .map {
-//          case Left(ex: sttp.client3.SttpClientException.TimeoutException) => ex.getMessage shouldBe "request timed out"
-//          case Left(ex) => fail(s"Unexpected exception: $ex")
-//          case Right(_) => fail("Expected an exception but got success")
-//        }
+        .attempt
+        .map {
+          case Left(ex: sttp.client3.SttpClientException.TimeoutException) =>
+            println("kupa")
+            println(ex.getCause)
+            ex.getCause.getMessage shouldBe "request timed out"
+          case Left(ex) => fail(s"Unexpected exception: $ex")
+          case Right(_) => fail("Expected an exception but got success")
+        }
         .unsafeToFuture()
     }
   )
